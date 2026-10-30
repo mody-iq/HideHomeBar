@@ -9,26 +9,58 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Install Linux build dependencies
         shell: bash
         run: |
           set -euo pipefail
-          brew install ldid
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            fakeroot \
+            git \
+            libtinfo6 \
+            perl \
+            rsync \
+            unzip \
+            xz-utils
 
-      - name: Install RootHide Theos
+      - name: Install ldid
         shell: bash
         run: |
           set -euo pipefail
-          git clone --depth=1 --recurse-submodules https://github.com/roothide/theos.git "$HOME/theos"
-          echo "THEOS=$HOME/theos" >> "$GITHUB_ENV"
-          echo "PATH=$HOME/theos/bin:$PATH" >> "$GITHUB_ENV"
-          test -f "$HOME/theos/makefiles/common.mk"
+          mkdir -p "$HOME/bin"
+          curl -fsSL \
+            https://github.com/ProcursusTeam/ldid/releases/latest/download/ldid_linux_x86_64 \
+            -o "$HOME/bin/ldid"
+          chmod +x "$HOME/bin/ldid"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          "$HOME/bin/ldid" --version || true
+
+      - name: Install RootHide Theos, toolchain, and SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          export THEOS="$HOME/theos"
+          git clone --depth=1 --recurse-submodules \
+            https://github.com/roothide/theos.git "$THEOS"
+
+          mkdir -p "$THEOS/toolchain"
+          curl -fsSL \
+            https://github.com/L1ghtmann/llvm-project/releases/latest/download/iOSToolchain-x86_64.tar.xz \
+            | tar -xJ -C "$THEOS/toolchain"
+
+          "$THEOS/bin/install-sdk" latest
+
+          echo "THEOS=$THEOS" >> "$GITHUB_ENV"
+          echo "PATH=$THEOS/bin:$HOME/bin:$PATH" >> "$GITHUB_ENV"
+          test -x "$THEOS/toolchain/linux/iphone/bin/clang"
+          test -d "$THEOS/sdks" && find "$THEOS/sdks" -maxdepth 1 -name '*.sdk' -print -quit | grep -q .
 
       - name: Build package
         shell: bash
