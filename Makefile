@@ -1,11 +1,12 @@
-TARGET := iphone:clang:latest:7.0
-@@KILL_RULE@@
+ARCHS = arm64 arm64e
+TARGET = iphone:clang:latest:11.0
 
-include @@THEOS@@/makefiles/common.mk
+include $(THEOS)/makefiles/common.mk
 
 TWEAK_NAME = hidehomebar
 
 hidehomebar_FILES = Tweak.xm
-hidehomebar_CFLAGS = -fobjc-arc -Wno-error=unused-variable -Wno-error=shadow-declaration -Wno-error=conditional-uninitialized
+hidehomebar_CFLAGS = -fobjc-arc
+hidehomebar_FRAMEWORKS = UIKit
 
 include $(THEOS_MAKE_PATH)/tweak.mk
