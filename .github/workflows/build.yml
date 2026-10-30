@@ -1,0 +1,68 @@
+name: Build Tweak
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install Theos dependencies
+      run: |
+        # Install Homebrew if not present
+        if ! command -v brew &> /dev/null; then
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo "export PATH=/opt/homebrew/bin:$PATH" >> $GITHUB_ENV
+        fi
+
+        # Install required system packages
+        brew install pkg-config cmake llvm jq unzip wget
+        
+        # Install Theos from source
+        git clone https://github.com/theos/theos.git ~/theos
+        echo "export PATH=$HOME/theos/usr/bin:$PATH" >> $GITHUB_ENV
+        echo "export THEOS=$HOME/theos" >> $GITHUB_ENV
+        echo "export TARGET=iphone" >> $GITHUB_ENV
+
+    - name: Set up environment for RootHide
+      run: |
+        # Install roothide if needed
+        if [ ! -f "/usr/bin/roothide" ]; then
+          wget -q https://github.com/roothide/roothide/releases/latest/download/roothide -O /usr/local/bin/roothide
+          chmod +x /usr/local/bin/roothide
+        fi
+
+    - name: Install Python dependencies
+      run: |
+        pip3 install --user pyyaml
+
+    - name: Build tweak
+      run: |
+        cd $GITHUB_WORKSPACE/HideHomeBar
+        
+        # Make package for the tweak
+        make package
+        
+        # Find the generated .deb file
+        DEB_FILE=$(find . -name "*.deb" -type f)
+        if [ -n "$DEB_FILE" ]; then
+          echo "Generated package: $DEB_FILE"
+          echo "DEB_FILE=$DEB_FILE" >> $GITHUB_ENV
+        else
+          echo "Error: No .deb file found after build"
+          exit 1
+        fi
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: tweak-package
+        path: ${{ env.DEB_FILE }}
+        retention-days: 7
