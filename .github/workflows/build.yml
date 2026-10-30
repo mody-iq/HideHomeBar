@@ -23,7 +23,7 @@ jobs:
         fi
 
         # Install required system packages
-        brew install pkg-config cmake llvm jq unzip wget git
+        brew install pkg-config cmake llvm jq unzip wget git python3
         
         # Install Theos from source
         git clone https://github.com/theos/theos.git ~/theos
@@ -39,12 +39,22 @@ jobs:
         echo "export PATH=$HOME/root-hide/theos/usr/bin:$PATH" >> $GITHUB_ENV
         echo "export ROOTHIDE=$HOME/root-hide/theos" >> $GITHUB_ENV
 
-    - name: Install Python dependencies
+    - name: Set up Python virtual environment
       run: |
-        pip3 install --user pyyaml
+        # Create and activate a virtual environment for Python packages
+        python3 -m venv /tmp/venv
+        source /tmp/venv/bin/activate
+        pip install --upgrade pip
+        pip install pyyaml
+        echo "source /tmp/venv/bin/activate" >> $GITHUB_ENV
 
     - name: Build tweak
       run: |
+        # Activate virtual environment if it exists
+        if [ -f "/tmp/venv/bin/activate" ]; then
+          source /tmp/venv/bin/activate
+        fi
+        
         cd $GITHUB_WORKSPACE/HideHomeBar
         
         # Make package for the tweak
