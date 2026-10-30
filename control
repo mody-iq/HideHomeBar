@@ -1,6 +1,6 @@
 Package: com.mody.hidehomebar
 Name: Hide Home Bar
-Version: 0.0.1
+Version: 0.0.2
 Architecture: iphoneos-arm64e
 Description: A system-wide tweak that completely hides the white Home Indicator bar at the bottom of the screen across all apps and system interfaces.
 Maintainer: mody-iq
